@@ -1,0 +1,131 @@
+# ATS Resume Checker
+
+Upload a resume (PDF, DOCX or TXT) and get an ATS score out of 100, a score
+breakdown, prioritised improvements, keyword gaps and rewritten bullet points.
+Optionally paste a job description to score the resume against that job.
+
+Built with [Streamlit](https://streamlit.io) and the Google Gemini API
+(Flash model).
+
+## Features
+
+- Reads PDF, DOCX and TXT resumes (up to 5 MB)
+- Overall ATS score plus per-category scores
+- Prioritised improvements (high, medium, low) with specific fixes
+- Found and missing keywords
+- Bullet-point rewrites (with placeholders like `[X%]` so nothing is invented)
+- Rule-based checks: email, phone, section headings, length
+- Optional job description matching
+- Downloadable Markdown report
+
+## How the score works
+
+1. Gemini rates the resume from 0 to 100 in each category, following a fixed rubric.
+2. The app blends the model's formatting rating with its own rule-based checks
+   (contact details, section headings, length), because the model only sees
+   extracted text and cannot see the page layout.
+3. The final score is a weighted average calculated in code, not by the model.
+
+| Category | Without job description | With job description |
+|---|---|---|
+| Job description match | n/a | 30% |
+| Keywords and skills | 25% | 15% |
+| Achievements and impact | 25% | 20% |
+| Sections and structure | 20% | 15% |
+| ATS-friendly formatting | 15% | 10% |
+| Clarity and grammar | 15% | 10% |
+
+> This is an estimate. Real ATS products (Workday, Greenhouse, Lever and others)
+> each parse resumes differently, and no tool can reproduce their exact scores.
+> Use the result as guidance on what to fix, not as a guarantee.
+
+## Run locally
+
+Requires Python 3.10 or newer.
+
+```bash
+git clone https://github.com/<your-username>/ats-resume-checker.git
+cd ats-resume-checker
+
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+### Add your Gemini API key
+
+Get a free key from [Google AI Studio](https://aistudio.google.com/apikey), then
+use any one of these:
+
+- Paste it in the sidebar when the app runs (easiest, nothing is stored).
+- Create `.streamlit/secrets.toml` in the project folder:
+
+  ```toml
+  GEMINI_API_KEY = "your-key-here"
+  ```
+
+- Or set an environment variable: `export GEMINI_API_KEY="your-key-here"`
+
+### Choose a different model
+
+Gemini model names change over time. The default is `gemini-3.5-flash`. If it is
+unavailable for your key, the app automatically tries `gemini-2.5-flash`. To use
+another model, edit the "Gemini model" box in the sidebar, or add this to your
+secrets:
+
+```toml
+GEMINI_MODEL = "gemini-2.5-flash"
+```
+
+See the current list at <https://ai.google.dev/gemini-api/docs/models>.
+
+## Deploy on Streamlit Community Cloud
+
+1. Push this project to a GitHub repository (the repository can be public or private).
+2. Go to <https://share.streamlit.io> and sign in with GitHub.
+3. Click **Create app**, choose your repository and branch, and set the main file
+   path to `app.py`.
+4. Open **Advanced settings** and paste your secrets:
+
+   ```toml
+   GEMINI_API_KEY = "your-key-here"
+   ```
+
+5. Click **Deploy**. The first build takes a few minutes.
+
+Never commit `.streamlit/secrets.toml` or any API key to GitHub.
+
+## Project structure
+
+```
+ats-resume-checker/
+├── app.py            # the whole app
+├── requirements.txt  # Python dependencies
+├── README.md
+└── .gitignore        # keeps secrets and virtualenvs out of Git
+```
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| "Almost no text could be read" | The PDF is a scan or image. Export a text-based PDF or use DOCX. |
+| "Gemini rejected the API key" | Check the key and that the Gemini API is enabled for it. |
+| "Rate limit or quota reached" | Wait a minute, or check your quota in Google AI Studio. |
+| "That model is not available" | Change the model name in the sidebar, e.g. `gemini-2.5-flash`. |
+| Scores differ slightly between runs | Normal for AI output. Rule-based checks stay identical. |
+
+## Privacy
+
+The text of the uploaded resume (and job description, if given) is sent to the
+Google Gemini API to be analysed. The app does not store files or results on
+disk. Review Google's API data policy before using real resumes of other people.
+
+## Limitations
+
+- Scanned or image-only resumes cannot be read.
+- Text inside images, headers, footers and text boxes may be missed, which is
+  also what happens in many real ATS systems.
+- Very long resumes are truncated to the first 20,000 characters.
